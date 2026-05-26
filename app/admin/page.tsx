@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, FormEvent } from 'react';
 import { supabase } from '@/utils/supabase';
-import { useRouter } from 'next/navigation'; // Diimport untuk navigasi halaman
+import { useRouter } from 'next/navigation';
 
 interface Jadwal {
   id: number;
@@ -13,11 +13,12 @@ interface Jadwal {
   keterangan_partitur: string | null;
   nada_dasar?: string | null;
   file_pdf_url?: string | null;
-  file_mp3_url?: string | null;
+  link_sopran1?: string | null;
+  link_sopran2?: string | null;
 }
 
 export default function AdminDashboard() {
-  const router = useRouter(); // Definisikan fungsi router navigasi
+  const router = useRouter();
   
   const [tanggal, setTanggal] = useState<string>('');
   const [jamMulai, setJamMulai] = useState<string>('');
@@ -26,8 +27,11 @@ export default function AdminDashboard() {
   const [deskripsiKegiatan, setDeskripsiKegiatan] = useState<string>('');
   
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [mp3File, setMp3File] = useState<File | null>(null);
   const [nadaDasar, setNadaDasar] = useState<string>('');
+  
+  // State Baru: Menggunakan string untuk menyimpan link URL biasa
+  const [linkSopran1, setLinkSopran1] = useState<string>('');
+  const [linkSopran2, setLinkSopran2] = useState<string>('');
 
   const [daftarJadwal, setDaftarJadwal] = useState<Jadwal[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -59,9 +63,9 @@ export default function AdminDashboard() {
     }
 
     let pdfUrl = null;
-    let mp3Url = null;
 
     try {
+      // Hanya upload PDF ke storage jika ada file yang dipilih
       if (pdfFile) {
         const fileExt = pdfFile.name.split('.').pop();
         const fileName = `pdf_${Date.now()}.${fileExt}`;
@@ -77,23 +81,9 @@ export default function AdminDashboard() {
         }
       }
 
-      if (mp3File) {
-        const fileExt = mp3File.name.split('.').pop();
-        const fileName = `audio_${Date.now()}.${fileExt}`;
-        const { data: dataMp3, error: errMp3 } = await supabase.storage
-          .from('partitur-files')
-          .upload(fileName, mp3File);
-        
-        if (errMp3) throw new Error(`Gagal upload MP3: ${errMp3.message}`);
-        
-        if (dataMp3) {
-          const { data } = supabase.storage.from('partitur-files').getPublicUrl(fileName);
-          mp3Url = data.publicUrl;
-        }
-      }
-
       const keteranganSaves = status === 'bukan_privat' ? deskripsiKegiatan : null;
 
+      // Masukkan data jadwal beserta link teks panduan suara ke database
       const { error } = await supabase.from('jadwal').insert([
         {
           tanggal,
@@ -104,20 +94,23 @@ export default function AdminDashboard() {
           keterangan_partitur: keteranganSaves,
           nada_dasar: nadaDasar || null,
           file_pdf_url: pdfUrl,
-          file_mp3_url: mp3Url
+          link_sopran1: linkSopran1 || null,
+          link_sopran2: linkSopran2 || null
         },
       ]);
 
       if (error) throw error;
 
-      alert('Jadwal, nada dasar, & file panduan latihan berhasil disimpan! 🌸');
+      alert('Jadwal, nada dasar, & link panduan suara berhasil disimpan! 🌸');
       
+      // Reset Form Inputs
       setJamMulai('');
       setJamSelesai('');
       setDeskripsiKegiatan('');
       setNadaDasar('');
+      setLinkSopran1('');
+      setLinkSopran2('');
       setPdfFile(null);
-      setMp3File(null);
       
       const fileInputs = document.querySelectorAll('input[type="file"]');
       fileInputs.forEach((input) => {
@@ -217,6 +210,7 @@ export default function AdminDashboard() {
                 </div>
               )}
 
+              {/* DATA STRUKTUR TAMBAHAN BARU (BENTUK LINK URL INPUT) */}
               <div className="pt-2 border-t border-pink-100 space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-pink-600 mb-1">Nada Dasar Lagu</label>
@@ -240,12 +234,24 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-pink-600 mb-1">Upload Panduan Suara (MP3)</label>
+                  <label className="block text-sm font-semibold text-pink-600 mb-1">Link Audio Sopran 1</label>
                   <input 
-                    type="file" 
-                    accept="audio/mp3,audio/mpeg" 
-                    onChange={(e) => setMp3File(e.target.files?.[0] || null)} 
-                    className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-pink-100 file:text-pink-700 hover:file:bg-pink-200 cursor-pointer"
+                    type="url" 
+                    value={linkSopran1} 
+                    onChange={(e) => setLinkSopran1(e.target.value)} 
+                    placeholder="Tempel link Google Drive/Audio di sini..." 
+                    className="w-full p-2.5 bg-pink-50 border border-pink-200 rounded-lg text-pink-900 focus:outline-none focus:border-pink-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-pink-600 mb-1">Link Audio Sopran 2</label>
+                  <input 
+                    type="url" 
+                    value={linkSopran2} 
+                    onChange={(e) => setLinkSopran2(e.target.value)} 
+                    placeholder="Tempel link Google Drive/Audio di sini..." 
+                    className="w-full p-2.5 bg-pink-50 border border-pink-200 rounded-lg text-pink-900 focus:outline-none focus:border-pink-500"
                   />
                 </div>
               </div>
@@ -255,7 +261,7 @@ export default function AdminDashboard() {
                 disabled={loading}
                 className="w-full py-2.5 bg-pink-500 hover:bg-pink-600 transition text-white font-bold rounded-lg shadow-md disabled:bg-gray-300"
               >
-                {loading ? 'Menyimpan & Upload...' : 'Simpan Slot Jadwal 🌸'}
+                {loading ? 'Menyimpan...' : 'Simpan Slot Jadwal 🌸'}
               </button>
             </form>
           </div>
@@ -300,19 +306,19 @@ export default function AdminDashboard() {
                         <p className="text-xs text-pink-500 font-semibold">✨ Slot Kosong / Menunggu Sopran</p>
                       )}
 
-                      {j.nada_dasar || j.file_pdf_url || j.file_mp3_url ? (
+                      {/* Info File Indikator */}
+                      {(j.nada_dasar || j.file_pdf_url || j.link_sopran1 || j.link_sopran2) && (
                         <div className="flex flex-wrap gap-2 pt-1 text-[11px] font-medium text-pink-600">
                           {j.nada_dasar && <span className="bg-pink-100 px-2 py-0.5 rounded">📍 {j.nada_dasar}</span>}
                           {j.file_pdf_url && <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">📄 PDF Ready</span>}
-                          {j.file_mp3_url && <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded">🎵 Audio Ready</span>}
+                          {j.link_sopran1 && <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded">🎵 S1 Link Ready</span>}
+                          {j.link_sopran2 && <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded">🎵 S2 Link Ready</span>}
                         </div>
-                      ) : null}
+                      )}
                     </div>
 
-                    {/* GRUP ACC BUTTONS (HAPUS & VIEW PARTITUR) */}
                     <div className="flex flex-row md:flex-col gap-2 self-start md:self-center">
-                      {/* TOMBOL BARU: Mengarahkan langsung ke halaman materi partitur */}
-                      {(j.file_pdf_url || j.file_mp3_url) && (
+                      {(j.file_pdf_url || j.link_sopran1 || j.link_sopran2) && (
                         <button
                           onClick={() => router.push(`/partitur/${j.id}`)}
                           className="text-xs px-3 py-1.5 bg-pink-100 text-pink-700 hover:bg-pink-200 border border-pink-200 font-bold rounded-lg transition"

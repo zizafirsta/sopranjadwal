@@ -25,8 +25,8 @@ export default function DetailPartitur() {
     if (id) ambilDetail();
   }, [id]);
 
-  if (loading) return <div className="p-8 text-center text-pink-600">Memuat materi latihan... 🎵</div>;
-  if (!jadwal) return <div className="p-8 text-center text-red-500">Materi tidak ditemukan.</div>;
+  if (loading) return <div className="p-8 text-center text-pink-600 font-medium">Memuat materi latihan... 🎵</div>;
+  if (!jadwal) return <div className="p-8 text-center text-red-500 font-medium">Materi tidak ditemukan.</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 text-slate-800 p-4 md:p-8 font-sans">
@@ -49,21 +49,47 @@ export default function DetailPartitur() {
           📍 Nada Dasar: <span className="font-bold">{jadwal.nada_dasar || 'Belum diatur oleh admin'}</span>
         </div>
 
-        {/* BAGIAN AUDIO MP3 */}
-        {jadwal.file_mp3_url ? (
-          <div className="mb-8 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl p-6 text-white shadow-md">
-            <h3 className="font-semibold text-lg mb-2">🎧 Panduan Suara Sopran</h3>
-            <p className="text-xs text-pink-100 mb-4">Ketuk untuk mendengarkan panduan vokal:</p>
-            <audio controls className="w-full h-10 rounded-lg outline-none bg-white/20">
-              <source src={jadwal.file_mp3_url} type="audio/mpeg" />
-              Browser kamu tidak mendukung pemutar audio ini.
-            </audio>
+        {/* SEKSI TOMBOL LINK AUDIO SOPRAN 1 & SOPRAN 2 */}
+        <div className="mb-8 bg-gradient-to-br from-pink-400 to-rose-500 rounded-2xl p-5 md:p-6 text-white shadow-lg">
+          <h3 className="font-bold text-lg mb-1 flex items-center gap-1.5">🎧 Audio Panduan Vokal</h3>
+          <p className="text-xs text-pink-100 mb-4">Pilih jenis suara kamu untuk mulai mendengarkan:</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Tombol Sopran 1 */}
+            {jadwal.link_sopran1 ? (
+              <a 
+                href={jadwal.link_sopran1} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center p-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition text-center shadow-inner group"
+              >
+                <span className="font-bold text-base">🎶 Sopran 1</span>
+                <span className="text-[11px] text-pink-100 mt-1 group-hover:scale-105 transition duration-200">👉 Ketuk untuk mendengarkan</span>
+              </a>
+            ) : (
+              <div className="p-4 bg-black/10 border border-white/5 text-pink-200 text-xs text-center rounded-xl flex items-center justify-center italic">
+                Link Sopran 1 belum diisi
+              </div>
+            )}
+
+            {/* Tombol Sopran 2 */}
+            {jadwal.link_sopran2 ? (
+              <a 
+                href={jadwal.link_sopran2} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center p-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition text-center shadow-inner group"
+              >
+                <span className="font-bold text-base">🎶 Sopran 2</span>
+                <span className="text-[11px] text-pink-100 mt-1 group-hover:scale-105 transition duration-200">👉 Ketuk untuk mendengarkan</span>
+              </a>
+            ) : (
+              <div className="p-4 bg-black/10 border border-white/5 text-pink-200 text-xs text-center rounded-xl flex items-center justify-center italic">
+                Link Sopran 2 belum diisi
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="mb-8 p-4 bg-slate-100 text-slate-500 text-sm text-center rounded-xl border border-dashed">
-            🔒 Audio latihan belum diupload oleh Admin.
-          </div>
-        )}
+        </div>
 
         {/* BAGIAN VIEW PDF PARTITUR */}
         <h3 className="font-bold text-lg text-pink-800 mb-3 flex items-center gap-2">
