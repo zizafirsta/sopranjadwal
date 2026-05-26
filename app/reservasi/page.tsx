@@ -143,7 +143,7 @@ export default function ReservasiJadwal() {
     if (props.file_pdf_url || props.link_sopran1 || props.link_sopran2) {
       router.push(`/partitur/${eventId}`);
     } else {
-      alert('Slot agenda ini belum memiliki lampiran partitur atau link dari Kak Ziza. 🌸');
+      alert('Slot agenda ini belum memiliki lampiran partitur atau link dari prinses');
     }
   };
 
