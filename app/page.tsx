@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, FormEvent } from 'react';
 import { supabase } from '@/utils/supabase';
+import { useRouter } from 'next/navigation'; // Diimport untuk navigasi halaman detail
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -15,10 +16,14 @@ interface CalendarEvent {
   textColor: string;
   extendedProps: {
     status: string;
+    file_pdf_url: string | null;
+    link_sopran1: string | null;
+    link_sopran2: string | null;
   };
 }
 
 export default function Home() {
+  const router = useRouter(); // Definisikan fungsi router navigasi
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -60,7 +65,13 @@ export default function Home() {
           backgroundColor: bgColor,
           borderColor: borderColor,
           textColor: '#ffffff',
-          extendedProps: { status: j.status },
+          // Menyimpan data file & link tambahan ke extendedProps agar bisa dibaca saat event diklik
+          extendedProps: { 
+            status: j.status,
+            file_pdf_url: j.file_pdf_url || null,
+            link_sopran1: j.link_sopran1 || null,
+            link_sopran2: j.link_sopran2 || null
+          },
         };
       });
 
@@ -126,6 +137,19 @@ export default function Home() {
     }
   };
 
+  // Fungsi untuk menangani aksi klik pada jadwal/event kalender
+  const handleEventClick = (info: any) => {
+    const eventId = info.event.id;
+    const props = info.event.extendedProps;
+
+    // Jika jadwal ini memiliki lampiran materi, arahkan user ke halaman materi latihan
+    if (props.file_pdf_url || props.link_sopran1 || props.link_sopran2) {
+      router.push(`/partitur/${eventId}`);
+    } else {
+      alert('Slot agenda ini belum memiliki lampiran partitur atau link panduan vokal dari Kak Ziza. 🌸');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-pink-50 to-rose-100 text-pink-900 font-sans p-4 md:p-8 transition-all duration-500">
       <div className="max-w-6xl mx-auto flex flex-col items-center">
@@ -169,6 +193,7 @@ export default function Home() {
               selectMirror={true}
               selectOverlap={false}
               select={handleSelectWaktuKosong}
+              eventClick={handleEventClick} // Menautkan fungsi klik event kalender
               height="auto"
               slotLabelFormat={{
                 hour: '2-digit',
@@ -245,7 +270,7 @@ export default function Home() {
         .fc .fc-button-primary:hover { background-color: #db2777 !important; transform: translateY(-1px); }
         .fc .fc-timegrid-slot { height: 4.2rem !important; }
         .fc-v-event { background: var(--fc-event-bg-color) !important; border: none !important; border-left: 4px solid var(--fc-event-border-color) !important; border-radius: 12px !important; padding: 6px !important; box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.1); transition: all 0.2s; }
-        .fc-v-event:hover { transform: translateY(-2px) scale(1.01); filter: brightness(1.03); }
+        .fc-v-event:hover { transform: translateY(-2px) scale(1.01); filter: brightness(1.03); cursor: pointer; }
         .fc .fc-col-header-cell-cushion { color: #be185d; font-weight: 800; text-decoration: none; font-size: 0.95rem; }
         .fc .fc-timegrid-slot-label-cushion { color: #be185d; font-size: 0.8rem; font-weight: 600; }
         .fc .fc-highlight { background: linear-gradient(to bottom, rgba(244, 63, 94, 0.2), rgba(236, 72, 153, 0.2)) !important; }
