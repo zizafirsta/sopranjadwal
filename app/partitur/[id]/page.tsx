@@ -1,114 +1,82 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
+import { useRouter } from 'next/navigation';
 
-export default function DetailPartitur() {
-  const { id } = useParams();
+interface Jadwal {
+  id: number;
+  tanggal: string;
+  keterangan_partitur: string | null;
+  nada_dasar: string | null;
+  file_pdf_url: string | null;
+  link_sopran1: string | null;
+  link_sopran2: string | null;
+}
+
+export default function DaftarPartitur() {
   const router = useRouter();
-  const [jadwal, setJadwal] = useState<any>(null);
+  const [materiLatihan, setMateriLatihan] = useState<Jadwal[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const ambilDetail = async () => {
+    const ambilMateri = async () => {
       const { data, error } = await supabase
         .from('jadwal')
         .select('*')
-        .eq('id', id)
-        .single();
+        .not('keterangan_partitur', 'is', null)
+        .order('tanggal', { ascending: false });
 
       if (!error && data) {
-        setJadwal(data);
+        const filtered = data.filter(j => j.file_pdf_url || j.link_sopran1 || j.link_sopran2);
+        setMateriLatihan(filtered);
       }
       setLoading(false);
     };
-    if (id) ambilDetail();
-  }, [id]);
-
-  if (loading) return <div className="p-8 text-center text-pink-600 font-medium">Memuat materi latihan... 🎵</div>;
-  if (!jadwal) return <div className="p-8 text-center text-red-500 font-medium">Materi tidak ditemukan.</div>;
+    ambilMateri();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 text-slate-800 p-4 md:p-8 font-sans">
-      <div className="max-w-4xl mx-auto bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-6 md:p-8 border border-pink-100">
-        
-        {/* Tombol Kembali */}
+    <div className="min-h-screen bg-gradient-to-br from-pink-100 via-pink-50 to-rose-100 text-pink-900 font-sans p-4 md:p-8">
+      <div className="max-w-4xl mx-auto">
         <button 
           onClick={() => router.push('/')}
           className="mb-6 text-sm font-semibold text-pink-600 hover:text-pink-700 flex items-center gap-1 transition"
         >
-          ← Kembali ke Kalender
+          ← Kembali ke Menu Utama
         </button>
 
-        {/* Judul & Nada Dasar */}
-        <h1 className="text-2xl md:text-3xl font-bold text-pink-700 mb-2">
-          🎵 {jadwal.keterangan_partitur || 'Materi Latihan Sopran'}
-        </h1>
-        
-        <div className="inline-block bg-pink-100 text-pink-800 font-medium text-sm px-4 py-1.5 rounded-full mb-6 border border-pink-200">
-          📍 Nada Dasar: <span className="font-bold">{jadwal.nada_dasar || 'Belum diatur oleh admin'}</span>
+        <div className="flex flex-col items-center gap-2 mb-8 text-center">
+          <img src="/2.png" alt="Sopran" className="h-16 object-contain" />
+          <h1 className="text-2xl md:text-3xl font-extrabold text-pink-700">Gudang Partitur & Panduan Suara 🎼</h1>
         </div>
 
-        {/* SEKSI TOMBOL LINK AUDIO SOPRAN 1 & SOPRAN 2 */}
-        <div className="mb-8 bg-gradient-to-br from-pink-400 to-rose-500 rounded-2xl p-5 md:p-6 text-white shadow-lg">
-          <h3 className="font-bold text-lg mb-1 flex items-center gap-1.5">🎧 Audio Panduan Vokal</h3>
-          <p className="text-xs text-pink-100 mb-4">Pilih jenis suara kamu untuk mulai mendengarkan:</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Tombol Sopran 1 */}
-            {jadwal.link_sopran1 ? (
-              <a 
-                href={jadwal.link_sopran1} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex flex-col items-center justify-center p-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition text-center shadow-inner group"
-              >
-                <span className="font-bold text-base">🎶 Sopran 1</span>
-                <span className="text-[11px] text-pink-100 mt-1 group-hover:scale-105 transition duration-200">👉 Ketuk untuk mendengarkan</span>
-              </a>
-            ) : (
-              <div className="p-4 bg-black/10 border border-white/5 text-pink-200 text-xs text-center rounded-xl flex items-center justify-center italic">
-                Link Sopran 1 belum diisi
-              </div>
-            )}
-
-            {/* Tombol Sopran 2 */}
-            {jadwal.link_sopran2 ? (
-              <a 
-                href={jadwal.link_sopran2} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex flex-col items-center justify-center p-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition text-center shadow-inner group"
-              >
-                <span className="font-bold text-base">🎶 Sopran 2</span>
-                <span className="text-[11px] text-pink-100 mt-1 group-hover:scale-105 transition duration-200">👉 Ketuk untuk mendengarkan</span>
-              </a>
-            ) : (
-              <div className="p-4 bg-black/10 border border-white/5 text-pink-200 text-xs text-center rounded-xl flex items-center justify-center italic">
-                Link Sopran 2 belum diisi
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* BAGIAN VIEW PDF PARTITUR */}
-        <h3 className="font-bold text-lg text-pink-800 mb-3 flex items-center gap-2">
-          📄 Lembar Partitur Lagu
-        </h3>
-        {jadwal.file_pdf_url ? (
-          <div className="w-full aspect-[4/5] md:aspect-[3/4] border-2 border-pink-200 rounded-2xl overflow-hidden bg-slate-100 shadow-inner">
-            <iframe 
-              src={`${jadwal.file_pdf_url}#toolbar=0`} 
-              className="w-full h-full"
-              title="Partitur PDF"
-            />
+        {loading ? (
+          <div className="text-center p-12 text-pink-600 font-medium animate-pulse">Memuat daftar lagu... 🎶</div>
+        ) : materiLatihan.length === 0 ? (
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-12 text-center text-slate-400 border border-dashed border-pink-200">
+            Belum ada materi partitur yang kamu upload. 🌸
           </div>
         ) : (
-          <div className="p-12 text-slate-400 border-2 border-dashed border-slate-200 rounded-2xl text-center text-sm">
-            Partitur PDF belum diupload untuk jadwal ini.
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {materiLatihan.map((m) => (
+              <div key={m.id} className="bg-white/90 p-5 rounded-2xl border border-pink-200 shadow-md flex flex-col justify-between group">
+                <div>
+                  <h3 className="font-bold text-lg text-slate-800">🎼 {m.keterangan_partitur}</h3>
+                  <div className="flex flex-wrap gap-2 mt-2 text-xs font-semibold">
+                    {m.nada_dasar && <span className="bg-pink-100 text-pink-700 px-2.5 py-0.5 rounded-full">📍 {m.nada_dasar}</span>}
+                    {m.file_pdf_url && <span className="bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">📄 PDF</span>}
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push(`/partitur/${m.id}`)}
+                  className="w-full mt-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs rounded-xl shadow-sm transition"
+                >
+                  Buka Ruang Latihan 🚀
+                </button>
+              </div>
+            ))}
           </div>
         )}
-
       </div>
     </div>
   );

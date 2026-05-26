@@ -15,19 +15,19 @@ export default function MainDashboard() {
           <div className="w-16 h-1 bg-gradient-to-r from-pink-400 to-rose-400 rounded-full mt-2"></div>
         </div>
 
-        {/* Gambar Judul Utama */}
+        {/* Gambar Judul */}
         <div className="flex justify-center transform hover:scale-102 transition duration-300">
           <img src="/3.png" alt="Ziza Sched" className="h-28 md:h-32 w-auto object-contain drop-shadow-md" />
         </div>
 
         <p className="text-slate-600 text-sm md:text-base font-medium max-w-md mx-auto leading-relaxed">
-          Selamat datang di portal latihan dan koordinasi Sopran! Silakan pilih layanan di bawah untuk melanjutkan aktivitasmu 🌸
+          Selamat datang di portal latihan Sopran! Silakan pilih menu di bawah ini untuk melanjutkan aktivitasmu 🌸
         </p>
 
-        {/* DUA TOMBOL UTAMA DASHBOARD */}
+        {/* MENU UTAMA DASHBOARD */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           
-          {/* MENU 1: JADWAL PRIVAT (KALENDER) */}
+          {/* MENU 1: JADWAL PRIVAT (LARI KE KALENDER) */}
           <button
             onClick={() => router.push('/reservasi')}
             className="p-6 bg-gradient-to-br from-white to-pink-50/40 border border-pink-200 hover:border-pink-400 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 text-left flex flex-col justify-between group active:scale-98"
@@ -38,12 +38,12 @@ export default function MainDashboard() {
             <div>
               <h3 className="font-bold text-lg text-pink-700 group-hover:text-pink-600">Jadwal Privat</h3>
               <p className="text-xs text-slate-500 mt-1 leading-normal">
-                Lihat agenda kosong Kak Ziza dan pesan waktu latihan privat mingguanmu di sini.
+                Lihat agenda kosong Kak Ziza dan pesan waktu latihan privatmu di sini.
               </p>
             </div>
           </button>
 
-          {/* MENU 2: GUDANG PARTITUR */}
+          {/* MENU 2: PARTITUR & AUDIO (LARI KE HALAMAN MATERI UPLOAD) */}
           <button
             onClick={() => router.push('/partitur')}
             className="p-6 bg-gradient-to-br from-white to-rose-50/40 border border-pink-200 hover:border-rose-400 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 text-left flex flex-col justify-between group active:scale-98"
@@ -61,7 +61,6 @@ export default function MainDashboard() {
 
         </div>
 
-        {/* Footer Kecil */}
         <div className="text-[11px] text-slate-400 pt-4">
           ChoirZ Project • Dibuat khusus dengan penuh kasih sayang 🌸
         </div>
