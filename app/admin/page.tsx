@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 
 interface DataRow {
   id: number;
-  tanggal: string;
-  jam_mulai: string;
-  jam_selesai: string;
+  tanggal: string | null;
+  jam_mulai: string | null;
+  jam_selesai: string | null;
   status: string;
   nama_pendaftar: string | null;
   keterangan_partitur: string | null;
@@ -22,13 +22,13 @@ export default function AdminDashboard() {
   const [allData, setAllData] = useState<DataRow[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // --- STATE UNTUK FORM 1: BUAT SLOT JADWAL BARU DI KALENDER ---
+  // --- STATE FORM 1: CRUD KALENDER ---
   const [slotTanggal, setSlotTanggal] = useState<string>('');
   const [slotJamMulai, setSlotJamMulai] = useState<string>('');
   const [slotJamSelesai, setSlotJamSelesai] = useState<string>('');
-  const [slotJudulLatihan, setSlotJudulLatihan] = useState<string>(''); // Sekarang pakai teks ketik sendiri
+  const [slotJudulLatihan, setSlotJudulLatihan] = useState<string>('');
 
-  // --- STATE UNTUK FORM 2: MANAJEMEN GUDANG MATERI LAGU ---
+  // --- STATE FORM 2: CRUD GUDANG MATERI LAGU ---
   const [modeMateri, setModeMateri] = useState<'tambah' | 'edit'>('tambah');
   const [selectedLaguId, setSelectedLaguId] = useState<string>('');
   const [gudangJudulLagu, setGudangJudulLagu] = useState<string>('');
@@ -41,7 +41,7 @@ export default function AdminDashboard() {
     const { data, error } = await supabase
       .from('jadwal')
       .select('*')
-      .order('tanggal', { ascending: false });
+      .order('id', { ascending: false });
 
     if (!error && data) {
       setAllData(data as DataRow[]);
@@ -52,11 +52,11 @@ export default function AdminDashboard() {
     ambilDataSupabase();
   }, []);
 
-  // --- AKSI FORM 1: SIMPAN SLOT JADWAL BARU ---
+  // --- FORM 1: AKSI SIMPAN SLOT KALENDER ---
   const handleTambahSlotJadwal = async (e: FormEvent) => {
     e.preventDefault();
     if (!slotTanggal || !slotJamMulai || !slotJamSelesai || !slotJudulLatihan.trim()) {
-      alert('Semua data slot jadwal (termasuk judul latihan) wajib diisi ya! 🌸');
+      alert('Semua data slot kalender wajib diisi! 🌸');
       return;
     }
 
@@ -66,16 +66,16 @@ export default function AdminDashboard() {
         tanggal: slotTanggal,
         jam_mulai: slotJamMulai,
         jam_selesai: slotJamSelesai,
-        keterangan_partitur: slotJudulLatihan, // Hasil ketik sendiri dimasukkan ke sini
-        status: 'tersedia', // Slot kosong yang bisa diambil anak-anak
+        keterangan_partitur: slotJudulLatihan,
+        status: 'tersedia', 
       },
     ]);
 
     setLoading(false);
     if (error) {
-      alert(`Gagal membuat slot latihan: ${error.message}`);
+      alert(`Gagal membuat slot kalender: ${error.message}`);
     } else {
-      alert(`Berhasil membuka slot jadwal latihan "${slotJudulLatihan}" di kalender! 📅`);
+      alert(`Berhasil membuka slot latihan "${slotJudulLatihan}"! 📅`);
       setSlotTanggal('');
       setSlotJamMulai('');
       setSlotJamSelesai('');
@@ -84,7 +84,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // --- AKSI FORM 2: LOGIKA SELEKSI EDIT LAGU GUDANG ---
+  // --- FORM 2: SELEKSI EDIT LAGU GUDANG ---
   const handleLaguGudangChange = (id: string) => {
     setSelectedLaguId(id);
     if (!id) {
@@ -111,11 +111,11 @@ export default function AdminDashboard() {
     fileInputs.forEach((input) => { (input as HTMLInputElement).value = ''; });
   };
 
-  // --- AKSI FORM 2: SIMPAN MATERI LAGU KE GUDANG ---
+  // --- FORM 2: AKSI SIMPAN MATERI LAGU (GUDANG) ---
   const handleSimpanMateriGudang = async (e: FormEvent) => {
     e.preventDefault();
     if (!gudangJudulLagu.trim()) {
-      alert('Judul lagu untuk gudang wajib diisi! 🌸');
+      alert('Judul lagu wajib diisi! 🌸');
       return;
     }
 
@@ -143,7 +143,7 @@ export default function AdminDashboard() {
         nada_dasar: gudangNadaDasar || null,
         link_sopran1: gudangLinkSopran1 || null,
         link_sopran2: gudangLinkSopran2 || null,
-        status: 'materi_lagu', 
+        status: 'materi_lagu', // Penanda mutlak materi lagu bebas tanggal
       };
 
       if (pdfUrl) {
@@ -153,14 +153,14 @@ export default function AdminDashboard() {
       if (modeMateri === 'tambah') {
         const { error } = await supabase.from('jadwal').insert([dataPayload]);
         if (error) throw error;
-        alert(`Lagu "${gudangJudulLagu}" sukses masuk ke bagian Partitur & Audio! 🎼`);
+        alert(`Lagu "${gudangJudulLagu}" sukses masuk ke Gudang Partitur! 🎼`);
       } else {
         const { error } = await supabase
           .from('jadwal')
           .update(dataPayload)
           .eq('id', Number(selectedLaguId));
         if (error) throw error;
-        alert(`Pembaruan data lagu "${gudangJudulLagu}" berhasil disimpan! 🎀`);
+        alert(`Pembaruan lagu "${gudangJudulLagu}" berhasil! 🎀`);
       }
 
       resetFormMateri();
@@ -172,7 +172,21 @@ export default function AdminDashboard() {
     }
   };
 
-  // Filter khusus untuk list monitoring di sebelah kanan
+  // --- AKSI GLOBAL: HAPUS DATA (DELETE) ---
+  const handleHapusData = async (id: number, judul: string) => {
+    if (confirm(`Apakah kamu yakin ingin menghapus "${judul}" secara permanen?`)) {
+      const { error } = await supabase.from('jadwal').delete().eq('id', id);
+      if (!error) {
+        alert('Data berhasil dihapus! ✨');
+        if (Number(selectedLaguId) === id) resetFormMateri();
+        ambilDataSupabase();
+      } else {
+        alert('Gagal menghapus data.');
+      }
+    }
+  };
+
+  // Membagi data untuk monitoring list kiri & kanan
   const daftarSlotKalender = allData.filter(d => d.status !== 'materi_lagu');
   const daftarMateriLaguGudang = allData.filter(d => d.status === 'materi_lagu');
 
@@ -180,28 +194,19 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-pink-50 text-pink-900 p-4 md:p-6 font-sans">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Header */}
+        {/* Header Branding */}
         <div className="flex justify-center border-b-2 border-pink-200 pb-4">
           <img src="/3.png" alt="Ziza Sched" className="h-20 object-contain" />
         </div>
 
-        {/* ================= BARIS 1: MEKANISME KALENDER LATIHAN ================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* FORM BUAT SLOT BARU */}
-          <div className="bg-white p-5 rounded-2xl border-2 border-pink-200 shadow-md">
-            <h2 className="text-base font-bold mb-3 text-pink-700 flex items-center gap-1">📅 1. Buka Slot Kalender Baru</h2>
+        {/* ================= PANEL MENU 1: CRUD AGENDA KALENDER ================= */}
+        <div className="bg-white p-6 rounded-3xl border-2 border-pink-200 shadow-xl grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div>
+            <h2 className="text-base font-extrabold text-pink-700 mb-3 flex items-center gap-1">📅 1. Buka Slot Kalender</h2>
             <form onSubmit={handleTambahSlotJadwal} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-pink-600 mb-0.5">Judul Agenda Latihan / Lagu</label>
-                {/* DI SINI SUDAH DIUBAH JADI INPUT KETIK SENDIRI MAJU MENCARI BEBAS */}
-                <input 
-                  type="text"
-                  required
-                  value={slotJudulLatihan}
-                  onChange={(e) => setSlotJudulLatihan(e.target.value)}
-                  placeholder="Ketik nama latihan (Misal: Latihan Umum Gloria)"
-                  className="w-full p-2 text-sm bg-pink-50/60 border border-pink-200 rounded-lg text-pink-900 focus:outline-none focus:border-pink-500 font-medium"
-                />
+                <label className="block text-xs font-semibold text-pink-600 mb-0.5">Nama Agenda / Materi Latihan</label>
+                <input type="text" required value={slotJudulLatihan} onChange={(e) => setSlotJudulLatihan(e.target.value)} placeholder="Misal: Latihan Evaluasi Rutin" className="w-full p-2 text-sm bg-pink-50/60 border border-pink-200 rounded-lg text-pink-900 focus:outline-none focus:border-pink-500 font-medium"/>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
@@ -218,25 +223,22 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <button type="submit" disabled={loading} className="w-full py-2 bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs rounded-lg shadow transition">
-                {loading ? 'Menyimpan...' : 'Buka Slot Latihan di Kalender 🚀'}
+                {loading ? 'Menyimpan...' : 'Rilis Slot Kalender 🚀'}
               </button>
             </form>
           </div>
 
-          {/* MONITORING KALENDER */}
-          <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-pink-200 shadow-md">
-            <h2 className="text-base font-bold mb-3 text-pink-700">📋 Agenda & Booking Kalender Aktif</h2>
-            <div className="space-y-2 max-h-[220px] overflow-y-auto text-xs pr-1">
+          <div className="lg:col-span-2 border-t lg:border-t-0 lg:border-l border-pink-100 lg:pl-6">
+            <h2 className="text-sm font-bold mb-3 text-pink-700">📋 Daftar Monitoring & Hapus Kalender</h2>
+            <div className="space-y-2 max-h-[190px] overflow-y-auto text-xs pr-1">
               {daftarSlotKalender.length === 0 ? <p className="text-slate-400 italic">Belum ada slot kalender.</p> : 
                 daftarSlotKalender.map(s => (
-                  <div key={s.id} className={`p-2.5 rounded-lg border flex justify-between items-center ${s.status === 'terisi' ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}`}>
-                    <div>
-                      <span className="font-bold text-pink-700 mr-2">📅 {s.tanggal} ({s.jam_mulai} - {s.jam_selesai})</span>
-                      <span className="font-medium text-slate-800">Latihan: {s.keterangan_partitur}</span>
+                  <div key={s.id} className="p-2.5 rounded-xl border border-pink-100 bg-slate-50 flex justify-between items-center hover:bg-pink-50/20 transition">
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-pink-700">📅 {s.tanggal} ({s.jam_mulai} - {s.jam_selesai})</p>
+                      <p className="font-medium text-slate-800">Judul: {s.keterangan_partitur} <span className="text-[10px] px-1.5 py-0.2 bg-pink-100 rounded text-pink-800 font-bold ml-1">{s.status === 'terisi' ? `Booked: ${s.nama_pendaftar}` : 'Kosong'}</span></p>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${s.status === 'terisi' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                      {s.status === 'terisi' ? `Booking: ${s.nama_pendaftar}` : 'Kosong'}
-                    </span>
+                    <button onClick={() => handleHapusData(s.id, s.keterangan_partitur || 'Slot')} className="px-2.5 py-1 bg-red-50 text-red-600 border border-red-200 rounded-md hover:bg-red-100 font-bold text-[11px] transition">Hapus</button>
                   </div>
                 ))
               }
@@ -244,15 +246,13 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* ================= BARIS 2: MANAJEMEN GUDANG PARTITUR & AUDIO ================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4 border-t-2 border-dashed border-pink-200">
-          {/* FORM INPUT GUDANG */}
-          <div className="bg-white p-5 rounded-2xl border-2 border-pink-200 shadow-md">
-            <h2 className="text-base font-bold mb-2 text-pink-700">🎼 2. Upload Konten Gudang Musik</h2>
-            
+        {/* ================= PANEL MENU 2: CRUD GUDANG PARTITUR & AUDIO ================= */}
+        <div className="bg-white p-6 rounded-3xl border-2 border-pink-200 shadow-xl grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div>
+            <h2 className="text-base font-extrabold text-pink-700 mb-2 flex items-center gap-1">🎼 2. Kelola Gudang Partitur</h2>
             <div className="flex gap-2 mb-3 text-[11px] font-bold justify-center">
-              <button onClick={() => { setModeMateri('tambah'); resetFormMateri(); }} className={`px-3 py-1 rounded-md ${modeMateri === 'tambah' ? 'bg-pink-500 text-white' : 'bg-slate-100 text-slate-600'}`}>+ Tambah</button>
-              <button onClick={() => { setModeMateri('edit'); resetFormMateri(); }} className={`px-3 py-1 rounded-md ${modeMateri === 'edit' ? 'bg-pink-500 text-white' : 'bg-slate-100 text-slate-600'}`}>✏️ Edit</button>
+              <button onClick={() => { setModeMateri('tambah'); resetFormMateri(); }} className={`px-4 py-1 rounded-md transition ${modeMateri === 'tambah' ? 'bg-pink-500 text-white' : 'bg-slate-100 text-slate-600'}`}>+ Tambah</button>
+              <button onClick={() => { setModeMateri('edit'); resetFormMateri(); }} className={`px-4 py-1 rounded-md transition ${modeMateri === 'edit' ? 'bg-pink-500 text-white' : 'bg-slate-100 text-slate-600'}`}>✏️ Edit</button>
             </div>
 
             <form onSubmit={handleSimpanMateriGudang} className="space-y-2.5 text-xs">
@@ -267,23 +267,23 @@ export default function AdminDashboard() {
               )}
               <div>
                 <label className="block font-semibold text-pink-600 mb-0.5">Nama/Judul Lagu</label>
-                <input type="text" value={gudangJudulLagu} onChange={(e) => setGudangJudulLagu(e.target.value)} placeholder="Misal: Gloria In Excelsis Deo" className="w-full p-2 bg-pink-50 border border-pink-200 rounded-lg text-xs font-medium"/>
+                <input type="text" value={gudangJudulLagu} onChange={(e) => setGudangJudulLagu(e.target.value)} placeholder="Ketik judul lagu..." className="w-full p-2 bg-pink-50 border border-pink-200 rounded-lg text-xs font-medium"/>
               </div>
               <div>
                 <label className="block font-semibold text-pink-600 mb-0.5">Nada Dasar</label>
-                <input type="text" value={gudangNadaDasar} onChange={(e) => setGudangNadaDasar(e.target.value)} placeholder="Do = F" className="w-full p-2 bg-pink-50 border border-pink-200 rounded-lg text-xs"/>
+                <input type="text" value={gudangNadaDasar} onChange={(e) => setGudangNadaDasar(e.target.value)} placeholder="Misal: Do = G" className="w-full p-2 bg-pink-50 border border-pink-200 rounded-lg text-xs"/>
               </div>
               <div>
-                <label className="block font-semibold text-pink-600 mb-0.5">File Berkas Partitur (PDF)</label>
+                <label className="block font-semibold text-pink-600 mb-0.5">Upload File Partitur (PDF)</label>
                 <input type="file" accept="application/pdf" onChange={(e) => setGudangPdfFile(e.target.files?.[0] || null)} className="w-full text-xs cursor-pointer file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-pink-100 file:text-pink-700 font-medium"/>
               </div>
               <div>
-                <label className="block font-semibold text-pink-600 mb-0.5">Link Tautan Audio Sopran 1</label>
-                <input type="url" value={gudangLinkSopran1} onChange={(e) => setGudangLinkSopran1(e.target.value)} placeholder="Link Drive audio S1..." className="w-full p-2 bg-pink-50 border border-pink-200 rounded-lg text-xs"/>
+                <label className="block font-semibold text-pink-600 mb-0.5">Link Audio Sopran 1</label>
+                <input type="url" value={gudangLinkSopran1} onChange={(e) => setGudangLinkSopran1(e.target.value)} placeholder="Tempel link vokal S1..." className="w-full p-2 bg-pink-50 border border-pink-200 rounded-lg text-xs"/>
               </div>
               <div>
-                <label className="block font-semibold text-pink-600 mb-0.5">Link Tautan Audio Sopran 2</label>
-                <input type="url" value={gudangLinkSopran2} onChange={(e) => setGudangLinkSopran2(e.target.value)} placeholder="Link Drive audio S2..." className="w-full p-2 bg-pink-50 border border-pink-200 rounded-lg text-xs"/>
+                <label className="block font-semibold text-pink-600 mb-0.5">Link Audio Sopran 2</label>
+                <input type="url" value={gudangLinkSopran2} onChange={(e) => setGudangLinkSopran2(e.target.value)} placeholder="Tempel link vokal S2..." className="w-full p-2 bg-pink-50 border border-pink-200 rounded-lg text-xs"/>
               </div>
               <button type="submit" disabled={loading} className="w-full py-2 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-lg shadow transition">
                 {loading ? 'Menyimpan...' : modeMateri === 'tambah' ? 'Simpan ke Gudang Musik 🚀' : 'Simpan Edit Musik 🎀'}
@@ -291,23 +291,25 @@ export default function AdminDashboard() {
             </form>
           </div>
 
-          {/* LIST MONITORING GUDANG MUSIK */}
-          <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-pink-200 shadow-md">
-            <h2 className="text-base font-bold mb-3 text-pink-700">🎼 Konten Gudang Musik Aktif (Halaman Partitur)</h2>
+          <div className="lg:col-span-2 border-t lg:border-t-0 lg:border-l border-pink-100 lg:pl-6">
+            <h2 className="text-sm font-bold mb-3 text-pink-700">🎼 Daftar Monitoring & Hapus Gudang Musik</h2>
             <div className="space-y-2 max-h-[310px] overflow-y-auto text-xs pr-1">
               {daftarMateriLaguGudang.length === 0 ? <p className="text-slate-400 italic">Belum ada konten lagu gudang.</p> : 
                 daftarMateriLaguGudang.map(l => (
-                  <div key={l.id} className="p-3 rounded-lg border border-pink-100 bg-pink-50/20 flex justify-between items-center">
+                  <div key={l.id} className="p-3 rounded-xl border border-pink-100 bg-pink-50/20 flex justify-between items-center hover:bg-pink-50/50 transition">
                     <div>
                       <h4 className="font-bold text-slate-800 text-sm">🎼 {l.keterangan_partitur}</h4>
                       <div className="flex gap-2 mt-1 text-[10px] font-semibold text-pink-700">
                         {l.nada_dasar && <span>📍 {l.nada_dasar}</span>}
-                        {l.file_pdf_url && <span className="text-emerald-700">📄 PDF Ready</span>}
-                        {l.link_sopran1 && <span className="text-indigo-700">🎵 S1 Ready</span>}
-                        {l.link_sopran2 && <span className="text-purple-700">🎵 S2 Ready</span>}
+                        {l.file_pdf_url && <span className="text-emerald-700">📄 PDF Active</span>}
+                        {l.link_sopran1 && <span className="text-indigo-700">🎵 S1 Active</span>}
+                        {l.link_sopran2 && <span className="text-purple-700">🎵 S2 Active</span>}
                       </div>
                     </div>
-                    <button onClick={() => router.push(`/partitur/${l.id}`)} className="px-2 py-1 bg-pink-100 text-pink-700 font-bold border border-pink-200 rounded hover:bg-pink-200 transition text-[11px]">Preview 🚀</button>
+                    <div className="flex gap-2">
+                      <button onClick={() => router.push(`/partitur/${l.id}`)} className="px-2 py-1 bg-pink-100 text-pink-700 font-bold border border-pink-200 rounded hover:bg-pink-200 transition text-[10px]">Preview</button>
+                      <button onClick={() => handleHapusData(l.id, l.keterangan_partitur || 'Lagu')} className="px-2 py-1 bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 font-bold text-[10px] transition">Hapus</button>
+                    </div>
                   </div>
                 ))
               }
